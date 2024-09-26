@@ -54,18 +54,25 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <Calendar
-        localizer={localizer}
-        events={events}
-        startAccessor="start"
-        endAccessor="end"
-        style={{ height: 500, width: '100%' }}
-        view={view}
-        onView={(newView) => setView(newView)}
-        selectable={true}
-        onSelectSlot={handleSelectSlot}
-      />
-      <AIChat onAddEvent={handleAddEvent} />
+      <h1 className="text-2xl mb-4">AI Kalender</h1>
+      <div className="flex w-full">
+        <div className="w-2/3" style={{ marginRight: '20px' }}>
+          <Calendar
+            localizer={localizer}
+            events={events}
+            startAccessor="start"
+            endAccessor="end"
+            style={{ height: '100%', width: '100%' }}
+            view={view}
+            onView={(newView) => setView(newView)}
+            selectable={true}
+            onSelectSlot={handleSelectSlot}
+          />
+        </div>
+        <div className="w-1/3 flex flex-col">
+          <AIChat onAddEvent={handleAddEvent} />
+        </div>
+      </div>
     </main>
   );
 }
