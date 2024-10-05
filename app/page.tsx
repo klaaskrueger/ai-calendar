@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar, momentLocalizer, View } from 'react-big-calendar';
 import moment from 'moment';
 import AIChat from './components/AIChat';
@@ -21,25 +21,36 @@ export default function Home() {
   const [view, setView] = useState<View>('week');
 
   useEffect(() => {
+    console.log('Home component mounted');
     // Load events from localStorage when the component mounts
     const savedEvents = localStorage.getItem('calendarEvents');
     if (savedEvents) {
-      setEvents(JSON.parse(savedEvents).map((event: Event) => ({
+      const parsedEvents = JSON.parse(savedEvents).map((event: Event) => ({
         ...event,
         start: new Date(event.start),
         end: new Date(event.end)
-      })));
+      }));
+      console.log('Loaded events from localStorage:', parsedEvents);
+      setEvents(parsedEvents);
     }
   }, []);
 
-  const handleAddEvent = (newEvent: Event) => {
-    const updatedEvents = [...events, newEvent];
-    setEvents(updatedEvents);
-    // Save updated events to localStorage
-    localStorage.setItem('calendarEvents', JSON.stringify(updatedEvents));
-  };
+  const handleAddEvent = useCallback((newEvent: Event) => {
+    console.log('handleAddEvent called with:', newEvent);
+    setEvents(prevEvents => {
+      const updatedEvents = [...prevEvents, {
+        ...newEvent,
+        start: new Date(newEvent.start),
+        end: new Date(newEvent.end)
+      }];
+      localStorage.setItem('calendarEvents', JSON.stringify(updatedEvents));
+      console.log('Updated events:', updatedEvents);
+      return updatedEvents;
+    });
+  }, []);
 
   const handleSelectSlot = (slotInfo: { start: Date; end: Date }) => {
+    console.log('Slot selected:', slotInfo);
     const title = prompt('Enter a title for your event:');
     if (title) {
       const newEvent: Event = {
@@ -48,9 +59,12 @@ export default function Home() {
         start: slotInfo.start,
         end: slotInfo.end,
       };
+      console.log('New event created from slot selection:', newEvent);
       handleAddEvent(newEvent);
     }
   };
+
+  console.log('Rendering Home component with events:', events);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
@@ -60,11 +74,14 @@ export default function Home() {
           <Calendar
             localizer={localizer}
             events={events}
-            startAccessor="start"
-            endAccessor="end"
+            startAccessor={(event) => new Date(event.start)}
+            endAccessor={(event) => new Date(event.end)}
             style={{ height: '100%', width: '100%' }}
             view={view}
-            onView={(newView) => setView(newView)}
+            onView={(newView) => {
+              console.log('Calendar view changed to:', newView);
+              setView(newView);
+            }}
             selectable={true}
             onSelectSlot={handleSelectSlot}
           />

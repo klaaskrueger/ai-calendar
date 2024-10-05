@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { useChat } from 'ai/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,20 +18,43 @@ interface AIChatProps {
 }
 
 export default function AIChat({ onAddEvent }: AIChatProps) {
+  const [isCreatingEvent, setIsCreatingEvent] = useState(false);
+
   const { messages, input, handleInputChange, handleSubmit } = useChat({
-    onFinish: (message) => {
-      // Parse the AI response to create an event
-      const eventRegex = /Event: (.+)\nStart: (.+)\nEnd: (.+)/;
-      const match = message.content.match(eventRegex);
-      if (match) {
-        const [, title, start, end] = match;
-        const newEvent: Event = {
-          id: Date.now().toString(),
-          title,
-          start: new Date(start),
-          end: new Date(end),
-        };
-        onAddEvent(newEvent);
+    api: '/api/chat',
+    onFinish: async (message) => {
+      console.log('AI response received:', message.content);
+      if (isCreatingEvent) return; // Prevent multiple event creations
+      setIsCreatingEvent(true);
+      try {
+        console.log('Sending request to create-event API...');
+        const response = await fetch('/api/create-event', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message: message.content }),
+        });
+
+        console.log('create-event API response status:', response.status);
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(`Failed to create event: ${errorData.details || response.statusText}`);
+        }
+
+        const event: Event = await response.json();
+        console.log('Event created:', event);
+
+        onAddEvent(event);
+        console.log('onAddEvent called with:', event);
+        
+        alert(`Event "${event.title}" has been created for ${new Date(event.start).toLocaleString()}`);
+      } catch (error) {
+        console.error('Error in create-event process:', error);
+        alert(`Failed to create event: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      } finally {
+        setIsCreatingEvent(false);
       }
     },
   });
@@ -43,6 +66,8 @@ export default function AIChat({ onAddEvent }: AIChatProps) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
+
+  console.log('Current messages:', messages);
 
   return (
     <div className="rounded-lg border bg-card text-card-foreground shadow-sm h-[700px] flex flex-col">
